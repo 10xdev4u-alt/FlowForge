@@ -119,6 +119,10 @@ func (h *WorkflowHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *WorkflowHandler) SaveCanvas(w http.ResponseWriter, r *http.Request) {
+    // ...
+}
+
+func (h *WorkflowHandler) GetCanvas(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -132,18 +136,15 @@ func (h *WorkflowHandler) SaveCanvas(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var canvas CanvasState
-	if err := json.NewDecoder(r.Body).Decode(&canvas); err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "Invalid canvas data")
+	// Verify ownership
+	if _, err := h.workflowRepo.GetByID(r.Context(), id, userID); err != nil {
+		ErrorResponse(w, http.StatusNotFound, "Workflow not found")
 		return
 	}
 
-	nodesJSON, _ := json.Marshal(canvas.Nodes)
-	edgesJSON, _ := json.Marshal(canvas.Edges)
-
-	state, err := h.workflowRepo.SaveGraphState(r.Context(), id, nodesJSON, edgesJSON)
+	state, err := h.workflowRepo.GetGraphState(r.Context(), id)
 	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, "Could not save canvas")
+		ErrorResponse(w, http.StatusNotFound, "Canvas not found")
 		return
 	}
 

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import ReactFlow, { 
   Background, 
   Controls, 
@@ -7,7 +7,6 @@ import 'reactflow/dist/style.css';
 import { useWorkflowStore } from '../store/workflowStore';
 import { TriggerNode } from '../components/nodes/TriggerNode';
 import { ActionNode } from '../components/nodes/ActionNode';
-
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { Button } from '../components/ui/Button';
@@ -23,6 +22,31 @@ export const Editor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, setNodes, setEdges } = useWorkflowStore();
+
+  React.useEffect(() => {
+    const fetchCanvas = async () => {
+      try {
+        const { data } = await api.get(`/workflows/${id}/canvas`);
+        if (data && data.nodes && data.edges) {
+          // If nodes/edges are base64 strings from Go []byte JSON marshal
+          const parseData = (val: string) => {
+             try {
+               return JSON.parse(val);
+             } catch {
+               return JSON.parse(atob(val));
+             }
+          }
+          setNodes(parseData(data.nodes));
+          setEdges(parseData(data.edges));
+        }
+      } catch (error) {
+        // New workflows won't have a canvas yet
+        setNodes([{ id: '1', type: 'trigger', position: { x: 100, y: 100 }, data: { label: 'Webhook' } }]);
+        setEdges([]);
+      }
+    };
+    fetchCanvas();
+  }, [id, setNodes, setEdges]);
 
   const onSave = async () => {
     try {

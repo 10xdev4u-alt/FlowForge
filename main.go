@@ -91,6 +91,7 @@ func main() {
 		r.Route("/{id}", func(r chi.Router) {
 			r.Get("/", workflowHandler.GetByID)
 			r.Delete("/", workflowHandler.Delete)
+			r.Get("/canvas", workflowHandler.GetCanvas)
 			r.Post("/canvas", workflowHandler.SaveCanvas)
 			r.Patch("/toggle", workflowHandler.Toggle)
 			r.Get("/history", workflowHandler.GetHistory)

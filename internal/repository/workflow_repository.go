@@ -51,6 +51,10 @@ func (r *WorkflowRepository) SaveGraphState(ctx context.Context, workflowID uuid
 	})
 }
 
+func (r *WorkflowRepository) GetGraphState(ctx context.Context, workflowID uuid.UUID) (db.GraphState, error) {
+	return r.q.GetGraphState(ctx, workflowID)
+}
+
 func (r *WorkflowRepository) ToggleStatus(ctx context.Context, id uuid.UUID, isActive bool, userID uuid.UUID) (db.Workflow, error) {
 	return r.q.ToggleWorkflowStatus(ctx, db.ToggleWorkflowStatusParams{
 		ID:       id,
