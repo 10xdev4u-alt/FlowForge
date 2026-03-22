@@ -1,0 +1,6 @@
+CREATE TABLE graph_states (
+    workflow_id UUID PRIMARY KEY REFERENCES workflows(id) ON DELETE CASCADE,
+    nodes JSONB NOT NULL DEFAULT '[]',
+    edges JSONB NOT NULL DEFAULT '[]',
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
