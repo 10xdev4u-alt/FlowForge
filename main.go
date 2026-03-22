@@ -47,25 +47,33 @@ func main() {
 	workflowRepo := repository.NewWorkflowRepository(db.New(pool), database.NewStore(pool))
 	workflowHandler := api.NewWorkflowHandler(workflowRepo)
 
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://*", "http://*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true,
-		MaxAge:           300,
-	}))
+	asynqClient := worker.NewAsynqClient(cfg.RedisAddr)
+	distributor := worker.NewTaskDistributor(asynqClient)
+	webhookHandler := api.NewWebhookHandler(distributor)
 
+	// Start Worker Server in goroutine
+	srvWorker := worker.StartWorkerServer(cfg.RedisAddr)
+	engine := worker.NewEngine(db.New(pool), distributor)
+	muxWorker := asynq.NewServeMux()
+	muxWorker.HandleFunc(worker.TypeExecuteWorkflow, engine.HandleWorkflowExecution)
+	
+	go func() {
+		if err := srvWorker.Run(muxWorker); err != nil {
+			logger.Log.Fatal("worker server", zap.Error(err))
+		}
+	}()
+
+	r.Use(middleware.RequestID)
+...
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
 
+	r.Post("/webhooks/{workflow_id}", webhookHandler.HandleWebhook)
+
 	r.Route("/auth", func(r chi.Router) {
+...
 		r.Use(middleware.Throttle(10))
 		r.Post("/register", authHandler.Register)
 		r.Post("/login", authHandler.Login)
