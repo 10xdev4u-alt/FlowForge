@@ -4,6 +4,7 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
 import { CreateWorkflow } from './pages/CreateWorkflow';
+import { Editor } from './pages/Editor';
 
 function App() {
   const token = useAuthStore((state) => state.token);
@@ -14,7 +15,7 @@ function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/" element={token ? <Dashboard /> : <Navigate to="/login" />} />
       <Route path="/workflows/new" element={token ? <CreateWorkflow /> : <Navigate to="/login" />} />
-      <Route path="/editor/:id" element={token ? <div>Editor Placeholder</div> : <Navigate to="/login" />} />
+      <Route path="/editor/:id" element={token ? <Editor /> : <Navigate to="/login" />} />
     </Routes>
   );
 }
