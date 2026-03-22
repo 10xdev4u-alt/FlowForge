@@ -149,3 +149,65 @@ func (h *WorkflowHandler) SaveCanvas(w http.ResponseWriter, r *http.Request) {
 
 	JSONResponse(w, http.StatusOK, state)
 }
+
+type toggleRequest struct {
+	IsActive bool `json:"is_active"`
+}
+
+func (h *WorkflowHandler) Toggle(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Invalid workflow ID")
+		return
+	}
+
+	userID, ok := GetUserIDFromContext(r.Context())
+	if !ok {
+		ErrorResponse(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	var req toggleRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	workflow, err := h.workflowRepo.ToggleStatus(r.Context(), id, req.IsActive, userID)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, "Could not toggle status")
+		return
+	}
+
+	JSONResponse(w, http.StatusOK, workflow)
+}
+
+func (h *WorkflowHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Invalid workflow ID")
+		return
+	}
+
+	userID, ok := GetUserIDFromContext(r.Context())
+	if !ok {
+		ErrorResponse(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	// Verify ownership
+	if _, err := h.workflowRepo.GetByID(r.Context(), id, userID); err != nil {
+		ErrorResponse(w, http.StatusNotFound, "Workflow not found")
+		return
+	}
+
+	history, err := h.workflowRepo.GetExecutionHistory(r.Context(), id, 10, 0) // Default pagination for now
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, "Could not fetch history")
+		return
+	}
+
+	JSONResponse(w, http.StatusOK, history)
+}

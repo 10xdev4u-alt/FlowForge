@@ -83,6 +83,8 @@ func main() {
 			r.Get("/", workflowHandler.GetByID)
 			r.Delete("/", workflowHandler.Delete)
 			r.Post("/canvas", workflowHandler.SaveCanvas)
+			r.Patch("/toggle", workflowHandler.Toggle)
+			r.Get("/history", workflowHandler.GetHistory)
 		})
 	})
 

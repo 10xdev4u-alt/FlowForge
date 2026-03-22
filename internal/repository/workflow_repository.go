@@ -50,3 +50,19 @@ func (r *WorkflowRepository) SaveGraphState(ctx context.Context, workflowID uuid
 		Edges:      edges,
 	})
 }
+
+func (r *WorkflowRepository) ToggleStatus(ctx context.Context, id uuid.UUID, isActive bool, userID uuid.UUID) (db.Workflow, error) {
+	return r.q.ToggleWorkflowStatus(ctx, db.ToggleWorkflowStatusParams{
+		ID:       id,
+		IsActive: isActive,
+		UserID:   userID,
+	})
+}
+
+func (r *WorkflowRepository) GetExecutionHistory(ctx context.Context, workflowID uuid.UUID, limit, offset int32) ([]db.ExecutionLog, error) {
+	return r.q.ListExecutionLogs(ctx, db.ListExecutionLogsParams{
+		WorkflowID: workflowID,
+		Limit:      limit,
+		Offset:     offset,
+	})
+}
