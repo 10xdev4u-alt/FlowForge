@@ -59,6 +59,16 @@ export const Editor = () => {
     }
   };
 
+  const onTest = async () => {
+    try {
+      // Use the public webhook endpoint to trigger a test run
+      await api.post(`/webhooks/${id}`, { is_test: true });
+      alert('Test run triggered! Check execution history.');
+    } catch (error) {
+      alert('Failed to trigger test run');
+    }
+  };
+
   const onNodeClick = (_: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
   };
@@ -70,7 +80,8 @@ export const Editor = () => {
           <Button variant="secondary" onClick={() => navigate('/')}>Back</Button>
           <h1 className="text-xl font-bold bg-white px-4 py-2 rounded shadow">Workflow Editor</h1>
         </div>
-        <div className="absolute top-4 right-4 z-10 space-x-2">
+        <div className="absolute top-4 right-4 z-10 space-x-2 flex">
+          <Button variant="secondary" className="mr-2" onClick={onTest}>Test Run</Button>
           <Button onClick={onSave}>Save Workflow</Button>
         </div>
         <ReactFlow
