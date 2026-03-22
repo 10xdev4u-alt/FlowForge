@@ -9,10 +9,12 @@ import (
 )
 
 type Engine struct {
+	q           *db.Queries
+	distributor *TaskDistributor
 }
 
-func NewEngine() *Engine {
-	return &Engine{}
+func NewEngine(q *db.Queries, distributor *TaskDistributor) *Engine {
+	return &Engine{q: q, distributor: distributor}
 }
 
 func (e *Engine) HandleWorkflowExecution(ctx context.Context, t *asynq.Task) error {
@@ -21,6 +23,23 @@ func (e *Engine) HandleWorkflowExecution(ctx context.Context, t *asynq.Task) err
 		return err
 	}
 
-	logger.Log.Info("Executing workflow", zap.String("id", p.WorkflowID.String()))
+	// 1. Fetch Graph State
+	gs, err := e.q.GetGraphState(ctx, p.WorkflowID)
+	if err != nil {
+		return err
+	}
+
+	var nodes []api.Node
+	var edges []api.Edge
+	json.Unmarshal(gs.Nodes, &nodes)
+	json.Unmarshal(gs.Edges, &edges)
+
+	// 2. Find Root Node (Trigger)
+	root := FindRootNode(nodes, edges)
+	if root == nil {
+		return nil 
+	}
+
+	logger.Log.Info("Workflow triggered", zap.String("workflow_id", p.WorkflowID.String()), zap.String("root_node", root.ID))
 	return nil
 }
