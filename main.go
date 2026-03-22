@@ -72,6 +72,7 @@ func main() {
 	})
 
 	r.Post("/webhooks/{workflow_id}", webhookHandler.HandleWebhook)
+	r.Get("/ws", api.HandleWS)
 
 	r.Route("/auth", func(r chi.Router) {
 ...
