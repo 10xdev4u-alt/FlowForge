@@ -73,3 +73,79 @@ func (h *WorkflowHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	JSONResponse(w, http.StatusCreated, workflow)
 }
+
+func (h *WorkflowHandler) GetByID(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Invalid workflow ID")
+		return
+	}
+
+	userID, ok := GetUserIDFromContext(r.Context())
+	if !ok {
+		ErrorResponse(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	workflow, err := h.workflowRepo.GetByID(r.Context(), id, userID)
+	if err != nil {
+		ErrorResponse(w, http.StatusNotFound, "Workflow not found")
+		return
+	}
+
+	JSONResponse(w, http.StatusOK, workflow)
+}
+
+func (h *WorkflowHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Invalid workflow ID")
+		return
+	}
+
+	userID, ok := GetUserIDFromContext(r.Context())
+	if !ok {
+		ErrorResponse(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	if err := h.workflowRepo.Delete(r.Context(), id, userID); err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, "Could not delete workflow")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *WorkflowHandler) SaveCanvas(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Invalid workflow ID")
+		return
+	}
+
+	userID, ok := GetUserIDFromContext(r.Context())
+	if !ok {
+		ErrorResponse(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	var canvas CanvasState
+	if err := json.NewDecoder(r.Body).Decode(&canvas); err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Invalid canvas data")
+		return
+	}
+
+	nodesJSON, _ := json.Marshal(canvas.Nodes)
+	edgesJSON, _ := json.Marshal(canvas.Edges)
+
+	state, err := h.workflowRepo.SaveGraphState(r.Context(), id, nodesJSON, edgesJSON)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, "Could not save canvas")
+		return
+	}
+
+	JSONResponse(w, http.StatusOK, state)
+}

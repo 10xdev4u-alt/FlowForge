@@ -44,6 +44,9 @@ func main() {
 	userRepo := repository.NewUserRepository(db.New(pool))
 	authHandler := api.NewAuthHandler(userRepo, cfg)
 
+	workflowRepo := repository.NewWorkflowRepository(db.New(pool), database.NewStore(pool))
+	workflowHandler := api.NewWorkflowHandler(workflowRepo)
+
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
@@ -69,6 +72,17 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(api.AuthMiddleware(cfg))
 			r.Get("/me", authHandler.GetMe)
+		})
+	})
+
+	r.Route("/workflows", func(r chi.Router) {
+		r.Use(api.AuthMiddleware(cfg))
+		r.Get("/", workflowHandler.List)
+		r.Post("/", workflowHandler.Create)
+		r.Route("/{id}", func(r chi.Router) {
+			r.Get("/", workflowHandler.GetByID)
+			r.Delete("/", workflowHandler.Delete)
+			r.Post("/canvas", workflowHandler.SaveCanvas)
 		})
 	})
 
