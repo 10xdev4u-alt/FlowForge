@@ -24,3 +24,14 @@ func (d *TaskDistributor) EnqueueWorkflow(ctx context.Context, payload WorkflowP
 	_, err = d.client.EnqueueContext(ctx, task)
 	return err
 }
+
+func (d *TaskDistributor) EnqueueNode(ctx context.Context, payload NodePayload) error {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	task := asynq.NewTask(TypeExecuteNode, data)
+	_, err = d.client.EnqueueContext(ctx, task)
+	return err
+}

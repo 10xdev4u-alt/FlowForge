@@ -56,6 +56,7 @@ func main() {
 	engine := worker.NewEngine(db.New(pool), distributor)
 	muxWorker := asynq.NewServeMux()
 	muxWorker.HandleFunc(worker.TypeExecuteWorkflow, engine.HandleWorkflowExecution)
+	muxWorker.HandleFunc(worker.TypeExecuteNode, engine.HandleNodeExecution)
 	
 	go func() {
 		if err := srvWorker.Run(muxWorker); err != nil {
