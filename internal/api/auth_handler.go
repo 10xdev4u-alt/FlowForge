@@ -48,3 +48,48 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		"token": token,
 	})
 }
+
+type loginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+	var req loginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	user, err := h.userRepo.GetByEmail(r.Context(), req.Email)
+	if err != nil {
+		ErrorResponse(w, http.StatusUnauthorized, "Invalid credentials")
+		return
+	}
+
+	if !auth.CheckPassword(req.Password, user.PasswordHash) {
+		ErrorResponse(w, http.StatusUnauthorized, "Invalid credentials")
+		return
+	}
+
+	token, _ := auth.GenerateToken(user.ID, h.cfg.JWTSecret)
+	JSONResponse(w, http.StatusOK, map[string]interface{}{
+		"user":  user,
+		"token": token,
+	})
+}
+
+func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(UserIDKey).(uuid.UUID)
+	if !ok {
+		ErrorResponse(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	user, err := h.userRepo.GetByID(r.Context(), userID)
+	if err != nil {
+		ErrorResponse(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	JSONResponse(w, http.StatusOK, user)
+}
