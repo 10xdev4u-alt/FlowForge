@@ -41,6 +41,9 @@ func main() {
 
 	r := chi.NewRouter()
 
+	userRepo := repository.NewUserRepository(db.New(pool))
+	authHandler := api.NewAuthHandler(userRepo, cfg)
+
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
@@ -57,6 +60,16 @@ func main() {
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
+	})
+
+	r.Route("/auth", func(r chi.Router) {
+		r.Use(middleware.Throttle(10))
+		r.Post("/register", authHandler.Register)
+		r.Post("/login", authHandler.Login)
+		r.Group(func(r chi.Router) {
+			r.Use(api.AuthMiddleware(cfg))
+			r.Get("/me", authHandler.GetMe)
+		})
 	})
 
 	srv := &http.Server{
